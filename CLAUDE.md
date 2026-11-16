@@ -110,6 +110,22 @@ caricarlo su servizi esterni.
   102400 B) le elencava senza percorso; AppleScript sulla libreria andava in timeout. Pagina provata in Chrome
   con quei file; non in Safari.
 
+## Pubblicazione (GitHub)
+
+- Repository pubblico: https://github.com/LukePalmDev/MusicRemix (branch `main`). Sito (GitHub Pages dal ramo
+  `main`, cartella radice): https://lukepalmdev.github.io/MusicRemix/coreografia/ — la radice reindirizza lì.
+  Dopo un `git push` il sito si aggiorna in circa un minuto.
+- La cartella interna di git sta fuori da iCloud: `~/.local/share/musicremix/musicremix.git` (`.git` nel progetto è
+  solo un file che la indica; creato con `git init --separate-git-dir`). `gh repo create --source=.` non la riconosce:
+  creare il repository senza `--source`, poi `git remote add` e `git push`.
+- Identità dei commit: nome `LukePalmDev`, email riservata `218281005+LukePalmDev@users.noreply.github.com`
+  (impostate solo in questo repository; la email personale non va nei commit).
+- **Mai pubblicare**: audio (`*.m4a *.wav …`) e i link a `assets/ sessions/ exports/ backups/ Version/` (musica
+  commerciale; regola del progetto), `vendor/` (repository di terzi con la sua `.git`), `bridge/logs/`, `.mcp.json`
+  (percorsi locali). Sono tutti in `.gitignore`; controllare con `git ls-files` prima di ogni push.
+- La pagina non contiene audio: lo carica chi la usa dal proprio browser (IndexedDB). Le mosse stanno nel
+  `localStorage` del browser sul dominio del sito, quindi non coincidono con quelle scritte aprendo il file da disco.
+
 ## Operazioni
 
 - Avvio: `bridge/launch_ardour.sh [sessione.ardour]` (default: Exotica Salsa Remix). Attendere
