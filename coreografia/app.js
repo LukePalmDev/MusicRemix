@@ -34,30 +34,63 @@ try { rawState = localStorage.getItem(C.KEY); }
 catch (e) { storageBroken = true; }
 const S = C.parseState(rawState);
 let saveTimer = 0;
+let dirty = false;
 function persist() {
+  clearTimeout(saveTimer);
   saveTimer = 0;
-  if (storageBroken) return;
-  try { localStorage.setItem(C.KEY, JSON.stringify(C.stateForSave(S))); }
-  catch (e) { flash('Non riesco a salvare nel browser: usa «Salva su file».'); }
+  if (!dirty || storageBroken) return;
+  try {
+    localStorage.setItem(C.KEY, JSON.stringify(C.stateForSave(S)));
+    dirty = false;
+  } catch (e) {
+    flash('Non riesco a salvare nel browser: usa «Salva su file».');
+  }
 }
 function save() {
+  dirty = true;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(persist, 250);
 }
 function saveNow() {
-  clearTimeout(saveTimer);
-  saveTimer = 0;
+  dirty = true;
   persist();
 }
-// Solo se c'è una modifica non ancora scritta: una scheda aperta e non toccata non deve
-// sovrascrivere le mosse salvate da un'altra scheda.
 function flushPending() {
-  if (!saveTimer) return;
-  saveNow();
+  if (!dirty) return;
+  persist();
 }
 addEventListener('pagehide', flushPending);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') flushPending();
+});
+function applyStoredState(raw) {
+  const next = C.parseState(raw);
+  const versionChanged = next.active !== S.active;
+  S.active = next.active;
+  S.moves = next.moves;
+  S.speed = next.speed;
+  S.follow = next.follow;
+  S.autoplay = next.autoplay;
+  S.versions = next.versions;
+  if (versionChanged) { au.pause(); loop.mode = 'off'; }
+  rebuild();
+  bindPanel();
+  $('#speed').value = String(S.speed);
+  $('#optPlay').checked = S.autoplay;
+  $('#optFollow').checked = S.follow;
+  try { au.playbackRate = S.speed; } catch (e) { /* il file non è ancora pronto */ }
+  if (versionChanged) restoreAudio();
+  flash(next.corrupt
+    ? 'I dati arrivati da un’altra scheda erano danneggiati. Ho tenuto le mosse valide.'
+    : 'Mosse aggiornate da un’altra scheda.');
+}
+addEventListener('storage', e => {
+  if (e.key !== C.KEY || e.storageArea !== localStorage) return;
+  if (dirty) {
+    flash('Un’altra scheda ha salvato la coreografia. Qui ci sono modifiche non salvate: non le ho sostituite. Usa «Salva su file» se vuoi conservarle.', 6500);
+    return;
+  }
+  applyStoredState(e.newValue);
 });
 
 const V = () => S.versions[S.active];
@@ -681,6 +714,7 @@ addEventListener('resize', setPh);
   window.__coreo = {
     S, seek, play, stop, jump, goTo, update, now: () => now(),
     get bases() { return bases; }, get layout() { return layout; }, autoAlign, saveNow,
+    isDirty: () => dirty, flushPending,
   };
 })();
 })();

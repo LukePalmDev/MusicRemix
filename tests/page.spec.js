@@ -269,3 +269,43 @@ test('copia, cancella e ripristino dei valori predefiniti', async ({ page, conte
   await expect(baseCell(page, -2)).toBeVisible();
   expect(problems).toEqual([]);
 });
+
+test('una scheda non modificata non sovrascrive l’altra e si aggiorna', async ({ browser, baseURL }) => {
+  const context = await browser.newContext();
+  const a = await context.newPage();
+  const b = await context.newPage();
+  const problems = [];
+  for (const p of [a, b]) p.on('pageerror', err => problems.push(String(err)));
+  await a.goto(baseURL + '/coreografia/');
+  await b.goto(baseURL + '/coreografia/');
+  await move(a, 1).fill('solo A');
+  await expect(move(b, 1)).toHaveValue('solo A');
+  await expect.poll(() => b.evaluate(() => window.__coreo.isDirty())).toBe(false);
+  await b.evaluate(() => {
+    const key = 'exotica-coreografia-v1';
+    const before = localStorage.getItem(key);
+    try {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+      document.dispatchEvent(new Event('visibilitychange'));
+    } catch (e) { /* il browser non lascia sostituire visibilityState */ }
+    window.dispatchEvent(new Event('pagehide'));
+    window.__coreo.flushPending();
+    if (localStorage.getItem(key) !== before) throw new Error('la scheda non modificata ha sovrascritto');
+  });
+  await expect(move(a, 1)).toHaveValue('solo A');
+  await expect.poll(() => a.evaluate(() => JSON.parse(localStorage.getItem('exotica-coreografia-v1')).moves['1'])).toBe('solo A');
+
+  await move(b, 2).fill('bozza');
+  await expect.poll(() => b.evaluate(() => window.__coreo.isDirty())).toBe(true);
+  await a.evaluate(() => {
+    const key = 'exotica-coreografia-v1';
+    const o = JSON.parse(localStorage.getItem(key));
+    o.moves['8'] = 'da A';
+    localStorage.setItem(key, JSON.stringify(o));
+  });
+  await expect(b.locator('#toast.show')).toContainText('non le ho sostituite');
+  await expect(move(b, 2)).toHaveValue('bozza');
+  await expect(move(b, 1)).toHaveValue('solo A');
+  expect(problems).toEqual([]);
+  await context.close();
+});
