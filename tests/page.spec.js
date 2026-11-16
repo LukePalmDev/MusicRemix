@@ -82,6 +82,17 @@ test('si scrive una mossa, si ricarica, e un localStorage rotto non butta giù l
   await expect(page.locator('#sideList [data-n="1"] .t')).toHaveText('passo base → giro');
   await expect(page.locator('#sideCount')).toHaveText(/1 \/ /);
   await page.waitForFunction(() => (localStorage.getItem('exotica-coreografia-v1') || '').includes('passo base'));
+  await page.evaluate(() => {
+    const key = 'exotica-coreografia-v1';
+    const o = JSON.parse(localStorage.getItem(key));
+    o.moves['9'] = 'altra scheda';
+    localStorage.setItem(key, JSON.stringify(o));
+    window.dispatchEvent(new Event('pagehide'));
+  });
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('exotica-coreografia-v1')).moves['9'])).toBe('altra scheda');
+  await move(page, 4).fill('non ancora scritta');
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('exotica-coreografia-v1')).moves['4'])).toBe('non ancora scritta');
   await page.reload();
   await expect(move(page, 1)).toHaveValue('passo base → giro');
 

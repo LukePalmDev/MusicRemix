@@ -33,8 +33,9 @@ let rawState = null;
 try { rawState = localStorage.getItem(C.KEY); }
 catch (e) { storageBroken = true; }
 const S = C.parseState(rawState);
-let saveTimer;
+let saveTimer = 0;
 function persist() {
+  saveTimer = 0;
   if (storageBroken) return;
   try { localStorage.setItem(C.KEY, JSON.stringify(C.stateForSave(S))); }
   catch (e) { flash('Non riesco a salvare nel browser: usa «Salva su file».'); }
@@ -45,11 +46,18 @@ function save() {
 }
 function saveNow() {
   clearTimeout(saveTimer);
+  saveTimer = 0;
   persist();
 }
-addEventListener('pagehide', saveNow);
+// Solo se c'è una modifica non ancora scritta: una scheda aperta e non toccata non deve
+// sovrascrivere le mosse salvate da un'altra scheda.
+function flushPending() {
+  if (!saveTimer) return;
+  saveNow();
+}
+addEventListener('pagehide', flushPending);
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') saveNow();
+  if (document.visibilityState === 'hidden') flushPending();
 });
 
 const V = () => S.versions[S.active];
