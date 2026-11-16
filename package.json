@@ -1,0 +1,12 @@
+{
+  "name": "musicremix",
+  "private": true,
+  "scripts": {
+    "test:unit": "node --test tests/logic.test.js",
+    "test:e2e": "playwright test",
+    "test": "npm run test:unit && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1"
+  }
+}

@@ -1,0 +1,41 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  test:
+    name: unit + playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Python syntax
+        run: python3 -m py_compile bridge/server/ardour_studio_mcp/server.py bridge/lua_call.py bridge/mcp_call.py
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright
+        run: npm run test:e2e
