@@ -1,0 +1,28 @@
+# Dati e audio: musica commerciale, non va su GitHub (vedi CLAUDE.md: mai su servizi esterni)
+/assets
+/backups
+/exports
+/sessions
+/Version
+*.m4a
+*.wav
+*.mp3
+*.aif
+*.aiff
+*.flac
+*.caf
+*.ardour
+*.ardour.bak
+*.pending
+
+# Repository di terzi (raibid-entertainment/ardour-mcp), solo come riferimento locale
+/vendor/
+
+# Configurazione locale (percorsi del Mac), log e file temporanei
+/.mcp.json
+/bridge/logs/
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+.DS_Store

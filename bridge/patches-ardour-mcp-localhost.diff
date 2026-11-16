@@ -1,0 +1,13 @@
+diff --git a/libs/surfaces/mcp_http/mcp_http_server.cc b/libs/surfaces/mcp_http/mcp_http_server.cc
+index d00c6d8..871c4fb 100644
+--- a/libs/surfaces/mcp_http/mcp_http_server.cc
++++ b/libs/surfaces/mcp_http/mcp_http_server.cc
+@@ -3045,6 +3045,8 @@ MCPHttpServer::start ()
+ #endif
+ 
+ 	_info.port      = _port;
++	/* MusicRemix local patch: no authentication, so listen on loopback only */
++	_info.iface     = "127.0.0.1";
+ 	_info.protocols = _protocols;
+ 	_info.gid       = -1;
+ 	_info.uid       = -1;
