@@ -5,7 +5,7 @@ prodotto in Ardour guidato da Claude Code, più una **pagina per costruire una c
 
 ## La pagina della coreografia
 
-**https://lukepalmdev.github.io/MusicRemix/coreografia/**
+**https://musicremix.byluke.org/coreografia/** (anche dalla [pagina iniziale](https://musicremix.byluke.org/))
 
 - Pentagramma a **basi** (1 base = 8 tempi = 2 battute: `1 2 3 · 5 6 7 ·`), una riga per sezione del brano.
   L'intro ha le basi negative (−2, −1), così la base 1 coincide con l'inizio della canzone in tutte le versioni.

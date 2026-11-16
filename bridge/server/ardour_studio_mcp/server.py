@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import math
 import os
 import re
 import shutil
@@ -94,6 +95,34 @@ local function session_end_sample()
   return e
 end
 """
+
+
+def _num(name: str, value, lo: float, hi: float) -> float:
+    """Coerce a tool argument before it is interpolated into Lua. Rejects strings and non-finite values."""
+    try:
+        x = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{name} must be a number") from None
+    if isinstance(value, bool) or not math.isfinite(x) or not lo <= x <= hi:
+        raise ValueError(f"{name} out of range {lo}..{hi}")
+    return x
+
+
+def _int(name: str, value, lo: int, hi: int) -> int:
+    x = _num(name, value, lo, hi)
+    if x != math.floor(x):
+        raise ValueError(f"{name} must be an integer")
+    return int(x)
+
+
+def _bool(name: str, value) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and value in (0, 1) and float(value) == int(value):
+        return bool(value)
+    if isinstance(value, str) and value.lower() in ("true", "false"):
+        return value.lower() == "true"
+    raise ValueError(f"{name} must be a boolean")
 
 
 def _lua(body: str, timeout: float = 30.0):
@@ -184,8 +213,8 @@ return out""")
 @mcp.tool()
 def set_tempo(bpm: float, bar: int = 1) -> dict:
     """Set the tempo (quarter notes per minute) from `bar` onward (bar 1 = whole song). Undoable."""
-    if not 20 <= bpm <= 400:
-        raise ValueError("bpm out of range 20..400")
+    bpm = _num("bpm", bpm, 20, 400)
+    bar = _int("bar", bar, 1, 1_000_000)
     return _lua(f"""
 local pos = Temporal.timepos_t({'0' if bar == 1 else f'bbt_to_sample({bar}, 1)'})
 local tm = Temporal.TempoMap.write_copy()
@@ -200,6 +229,9 @@ return {{ bpm_at_bar = r:quarters_per_minute_at(pos), bar = {bar} }}""")
 @mcp.tool()
 def set_meter(beats_per_bar: int = 4, note_value: int = 4, bar: int = 1) -> dict:
     """Set the time signature (e.g. 4/4, 2/2, 6/8) from `bar` onward. Undoable."""
+    beats_per_bar = _int("beats_per_bar", beats_per_bar, 1, 256)
+    note_value = _int("note_value", note_value, 1, 256)
+    bar = _int("bar", bar, 1, 1_000_000)
     return _lua(f"""
 local pos = Temporal.timepos_t({'0' if bar == 1 else f'bbt_to_sample({bar}, 1)'})
 local tm = Temporal.TempoMap.write_copy()
@@ -221,6 +253,10 @@ def import_audio(file_path: str, track_name: str, new_track: bool = True, bar: i
     p = Path(file_path).expanduser().resolve()
     if not p.is_file():
         raise FileNotFoundError(str(p))
+    bar = _int("bar", bar, 1, 1_000_000)
+    beat = _num("beat", beat, 0, 64)
+    offset_seconds = _num("offset_seconds", offset_seconds, -86400, 86400)
+    new_track = _bool("new_track", new_track)
     return _lua(f"""
 local files = C.StringVector()
 files:push_back({lua_str(str(p))})
@@ -310,6 +346,11 @@ def export_wav(name: str = "", start_bar: int | None = None, end_bar: int | None
     Default range: start of session to end of the last region + tail. Optional bar range
     (end_bar exclusive). Returns the file path and, if analyze=True, technical metrics."""
     EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+    if start_bar is not None:
+        start_bar = _int("start_bar", start_bar, 1, 1_000_000)
+    if end_bar is not None:
+        end_bar = _int("end_bar", end_bar, 1, 1_000_000)
+    tail_seconds = _num("tail_seconds", tail_seconds, 0, 86400)
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
     fname = re.sub(r"[^\w\- ]+", "", name).strip() or "mix"
     fname = f"{fname} {stamp}"
@@ -367,6 +408,7 @@ def salsa_render(parts: list[str] | None = None, sections: list[str] | None = No
     that start inside the target sections are removed first (undoable), so other sections and
     other tracks are untouched. `seed` changes the velocity humanisation only.
     Call save_version before and after."""
+    seed = _int("seed", seed, -2_147_483_648, 2_147_483_647)
     parts = parts or list(salsa.PARTS)
     secs = [salsa.section_by_name(n) for n in sections] if sections else list(salsa.FORM)
     bad = [p for p in parts if p not in salsa.PARTS]

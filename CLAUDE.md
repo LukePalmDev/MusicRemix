@@ -113,7 +113,9 @@ caricarlo su servizi esterni.
 ## Pubblicazione (GitHub)
 
 - Repository pubblico: https://github.com/LukePalmDev/MusicRemix (branch `main`). Sito (GitHub Pages dal ramo
-  `main`, cartella radice): https://lukepalmdev.github.io/MusicRemix/coreografia/ — la radice reindirizza lì.
+  `main`, cartella radice, file `CNAME`): https://musicremix.byluke.org/coreografia/ — la radice è una pagina di ingresso.
+  Finché il dominio custom non è attivo in Settings → Pages resta raggiungibile anche
+  https://lukepalmdev.github.io/MusicRemix/coreografia/.
   Dopo un `git push` il sito si aggiorna in circa un minuto.
 - La cartella interna di git sta fuori da iCloud: `~/.local/share/musicremix/musicremix.git` (`.git` nel progetto è
   solo un file che la indica; creato con `git init --separate-git-dir`). `gh repo create --source=.` non la riconosce:
